@@ -73,7 +73,8 @@ def main():
     file = f'{path_file}_index.html'
     crete_datafiles()
     for i in range(1,8):
-        url_now = f'{url_pikabu}?page=i'
+        url_now = f'{url_pikabu}?page={i}'
+        print(url_now)
         get_page_to_file(url = url_now, headers = headers)
         new_data = get_data_from_html()
         put_table(new_data)
