@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup as BS
-import requests, json
+import requests, json, csv
 
 
 # загрузка страницы url в файл html
@@ -57,11 +57,19 @@ headers = {
     'Accept' : '*/*',
     'User-Agent' : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
 }
+path_file = 'data/'
+
+def get_text(text):
+    wr = ['\u2060', '\n', '\t',]
+    for item in wr:
+        if item in text:
+            text = text.replace(item, '')
+    return text
 
 def get_page_to_file(url, headers):
     req = requests.get(url, headers = headers)
     src = req.text
-    file = f'data/index_pikabu.html'
+    file = f'{path_file}index_pikabu.html'
     with open(file, 'w', encoding="utf-8") as f:
         f.write(src)
     return file
@@ -76,11 +84,33 @@ def get_json_from_html(file):
         auth = i.get("data-author-name")
         persoon_d = {}
         if auth:
-            print(i.contents)
-            persoon_d['title'] = i.h2.text
-            persoon_d['rating'] = i.h2.text
-            data[auth] = persoon_d
+            persoon_d['author'] = auth
+            persoon_d['title'] = get_text(i.h2.text.strip())
+            persoon_d['rating'] = i.find(class_ = 'story__rating-count').text
+            persoon_d['href'] = i.h2.a.get('href')
+            data[i.get('data-story-id')] = persoon_d
+    return data
 
-file = 'data/index_pikabu.html'
-#file = get_page_to_file(url = url_pikabu, headers = headers)
-jfile = get_json_from_html(file)
+def put_json(data):
+    with open(f'{path_file}pikabu_data.json', 'w', encoding="utf-8") as f:
+        json.dump(data, f,  indent = 4, ensure_ascii = False)
+        
+def put_table(data):
+    file = f'{path_file}picabu.csv'
+    names = ['post_id', 'author', 'title', 'rating', 'href']
+    with open(file, 'w', encoding="utf-8") as f:
+        wr = csv.writer(f)
+        wr.writerow(names)
+    for item, idata in data.items():
+        inp_data = [item]
+        [inp_data.append(idata.get(i)) for i in idata]
+        with open(file, 'a', encoding="utf-8") as f:
+            wr = csv.writer(f)
+            wr.writerow(inp_data)
+        
+
+file = f'{path_file}index_pikabu.html'
+file = get_page_to_file(url = url_pikabu, headers = headers)
+data = get_json_from_html(file)
+put_json(data)
+put_table(data)
